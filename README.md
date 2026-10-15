@@ -4,12 +4,13 @@ Um platformer curto sobre atravessar a fronteira entre dois mundos.
 
 ## Controles
 
-- Setas: mover
-- Z: pular e confirmar
+- DPAD: mover
+- B: pular
+- A: começar, interagir com o portal e jogar novamente
 
 ## Objetivo
 
-Atravesse a fase, reúna os fragmentos e alcance o portal para abrir a fronteira.
+Atravesse a fase, reúna os fragmentos e use A junto ao portal para abrir a fronteira.
 
 ## Arte
 

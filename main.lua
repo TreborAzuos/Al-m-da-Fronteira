@@ -32,7 +32,10 @@ local platforms = {
 }
 
 local spawn_x = 12
-local spawn_y = 208
+local spawn_y = 212
+local player_hitbox = { x = 9, y = 9, w = 13, h = 19 }
+local slime_hitbox = { x = 5, y = 14, w = 27, h = 10 }
+local portal_hitbox = { x = 438, y = 190, w = 30, h = 50 }
 local player = {}
 local slime = {}
 local fragments = {}
@@ -72,20 +75,44 @@ local function overlaps(a, b)
         and a.y < b.y + b.h and a.y + a.h > b.y
 end
 
-local function land_on_platforms(previous_bottom)
+local function player_bounds()
+    return {
+        x = player.x + player_hitbox.x,
+        y = player.y + player_hitbox.y,
+        w = player_hitbox.w,
+        h = player_hitbox.h
+    }
+end
+
+local function slime_bounds()
+    return {
+        x = slime.x + slime_hitbox.x,
+        y = slime.y + slime_hitbox.y,
+        w = slime_hitbox.w,
+        h = slime_hitbox.h
+    }
+end
+
+local function land_on_platforms(previous_y)
     player.grounded = false
     if player.vy < 0 then return end
 
+    local bounds = player_bounds()
+    local previous_bottom = previous_y + player_hitbox.y + player_hitbox.h
+    local current_bottom = bounds.y + bounds.h
+
     for _, platform in ipairs(platforms) do
-        local over_platform = player.x + player.w > platform.x
-            and player.x < platform.x + platform.w
+        local over_platform = bounds.x + bounds.w > platform.x
+            and bounds.x < platform.x + platform.w
         local crossed_top = previous_bottom <= platform.y
-            and player.y + player.h >= platform.y
+            and current_bottom >= platform.y
 
         if over_platform and crossed_top then
-            player.y = platform.y - player.h
+            player.y = platform.y - player_hitbox.y - player_hitbox.h
             player.vy = 0
             player.grounded = true
+            bounds.y = platform.y - player_hitbox.h
+            current_bottom = platform.y
         end
     end
 end
@@ -120,11 +147,11 @@ local function update_playing(frame)
         player.grounded = false
     end
 
-    player.x = ui.mid(0, player.x + player.vx, 480 - player.w)
-    local previous_bottom = player.y + player.h
+    player.x = ui.mid(0, player.x + player.vx, 480 - player_hitbox.x - player_hitbox.w)
+    local previous_y = player.y
     player.vy = math.min(6, player.vy + 0.26)
     player.y = player.y + player.vy
-    land_on_platforms(previous_bottom)
+    land_on_platforms(previous_y)
 
     if player.invulnerable > 0 then
         player.invulnerable = player.invulnerable - 1
@@ -135,27 +162,28 @@ local function update_playing(frame)
         slime.vx = -slime.vx
     end
 
+    local bounds = player_bounds()
     for _, fragment in ipairs(fragments) do
-        if not fragment.taken and overlaps(player, {
-            x = fragment.x,
-            y = fragment.y,
-            w = 16,
-            h = 16
+        if not fragment.taken and overlaps(bounds, {
+            x = fragment.x + 3,
+            y = fragment.y + 3,
+            w = 10,
+            h = 10
         }) then
             fragment.taken = true
             collected = collected + 1
         end
     end
 
-    if overlaps(player, slime) then
+    if overlaps(bounds, slime_bounds()) then
         lose_life()
     end
 
-    if player.y > 270 then
+    if bounds.y > 270 then
         lose_life()
     end
 
-    if player.x + player.w >= 444 then
+    if overlaps(bounds, portal_hitbox) and ui.btnp(BTN_X) then
         if collected == #fragments then
             screen = "won"
         elseif notice_timer <= 0 then
@@ -259,7 +287,8 @@ local function draw_playing(frame)
     end
 
     draw_hud()
-    ui.print("SETAS: MOVER   Z: PULAR", 143, 252, Color.white)
+    ui.rectfill(144, 32, 338, 47, Color.deep)
+    ui.print("DPAD MOVER  B PULAR  A ACAO", 150, 36, Color.white)
     if notice_timer > 0 then
         ui.rectfill(124, 108, 356, 132, Color.deep)
         ui.print(notice, 151, 116, Color.yellow)
@@ -275,7 +304,7 @@ local function draw_title(frame)
     ui.print("ALEM DA FRONTEIRA", 127, 83, Color.white)
     ui.print("REUNA OS 3 FRAGMENTOS", 135, 108, Color.yellow)
     ui.print("E ABRA O PORTAL", 163, 126, Color.white)
-    ui.print("APERTE Z PARA COMECAR", 146, 181, frame % 50 < 25 and Color.white or Color.frontier)
+    ui.print("A: COMECAR", 184, 181, frame % 50 < 25 and Color.white or Color.frontier)
     ui.spr(Sprites.art.player, 102, 205)
     ui.spr(Sprites.art.fragment, 348, 210)
 end
@@ -293,7 +322,7 @@ local function draw_ending(frame, won)
         ui.print("A FRONTEIRA RESISTIU", 133, 105, Color.white)
         ui.print("TENTE DE NOVO", 171, 131, Color.yellow)
     end
-    ui.print("Z: JOGAR NOVAMENTE", 157, 190, frame % 50 < 25 and Color.white or Color.frontier)
+    ui.print("A: JOGAR NOVAMENTE", 157, 190, frame % 50 < 25 and Color.white or Color.frontier)
 end
 
 function loop(frame)
@@ -306,14 +335,14 @@ function loop(frame)
     ui.cls(Color.left_sky)
 
     if screen == "title" then
-        if ui.btnp(BTN_Z) then reset_run() end
+        if ui.btnp(BTN_X) then reset_run() end
         draw_title(frame)
     elseif screen == "playing" then
         update_playing(frame)
         draw_playing(frame)
     else
         local won = screen == "won"
-        if ui.btnp(BTN_Z) then reset_run() end
+        if ui.btnp(BTN_X) then reset_run() end
         draw_ending(frame, won)
     end
 end
