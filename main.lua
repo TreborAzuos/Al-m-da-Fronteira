@@ -1,24 +1,51 @@
 require "palette"
 require "sprites"
 
+local function palette_hex(color)
+    if Palette.hex then return Palette.hex(color) end
+
+    local r = math.floor(color / 65536) % 256
+    local g = math.floor(color / 256) % 256
+    local b = color % 256
+    local r5 = math.floor(r / 8)
+    local g5 = math.floor(g / 8)
+    local b5 = math.floor(b / 8)
+    local target = b5 * 1024 + g5 * 32 + r5
+    local best_index = 0
+    local best_distance = math.huge
+    for i = 2, #Palette do
+        local value = Palette[i]
+        if value == target then return i - 1 end
+        local dr = value % 32 - r5
+        local dg = math.floor(value / 32) % 32 - g5
+        local db = math.floor(value / 1024) % 32 - b5
+        local distance = dr * dr + dg * dg + db * db
+        if distance < best_distance then
+            best_index = i - 1
+            best_distance = distance
+        end
+    end
+    return best_index
+end
+
 local Color = {
-    left_sky = Palette.hex(0x222034),
-    right_sky = Palette.hex(0x306082),
-    deep = Palette.hex(0x45283c),
-    mountain = Palette.hex(0x3f3f74),
-    mountain_light = Palette.hex(0x5b6ee1),
-    frontier = Palette.hex(0x5fcde4),
-    grass = Palette.hex(0x99e550),
-    grass_dark = Palette.hex(0x6abe30),
-    earth = Palette.hex(0x4b692f),
-    orange = Palette.hex(0xdf7126),
-    yellow = Palette.hex(0xfbf236),
-    white = Palette.hex(0xffffff),
-    red = Palette.hex(0xac3232),
-    black = Palette.hex(0x000000),
-    blue = Palette.hex(0x639bff),
-    forest_dark = Palette.hex(0x203c35),
-    forest_light = Palette.hex(0x8fce58)
+    left_sky = palette_hex(0x222034),
+    right_sky = palette_hex(0x306082),
+    deep = palette_hex(0x45283c),
+    mountain = palette_hex(0x3f3f74),
+    mountain_light = palette_hex(0x5b6ee1),
+    frontier = palette_hex(0x5fcde4),
+    grass = palette_hex(0x99e550),
+    grass_dark = palette_hex(0x6abe30),
+    earth = palette_hex(0x4b692f),
+    orange = palette_hex(0xdf7126),
+    yellow = palette_hex(0xfbf236),
+    white = palette_hex(0xffffff),
+    red = palette_hex(0xac3232),
+    black = palette_hex(0x000000),
+    blue = palette_hex(0x639bff),
+    forest_dark = palette_hex(0x203c35),
+    forest_light = palette_hex(0x8fce58)
 }
 
 local phase_one_platforms = {
@@ -71,6 +98,14 @@ local notice = ""
 local notice_timer = 0
 local opening_timer = 0
 local transition_target = "phase2"
+
+local function draw_circle_outline(x, y, radius, color)
+    if ui.circ then
+        ui.circ(x, y, radius, color)
+    elseif ui.draw_circle then
+        ui.draw_circle(x, y, radius, false, color, false, color)
+    end
+end
 
 local function print_pixel(text, x, y, color)
     local font = Sprites.art.font
@@ -326,13 +361,12 @@ local function update_playing(frame)
         notice_timer = 90
     end
 
-    if ui.btnp(BTN_G) then
+    if ui.btnp(BTN_X) then
         if overlaps(bounds, { x = portal_x - 1, y = portal_y - 18, w = 34, h = 50 }) then
             if has_fruit then
                 begin_transition(phase == 1 and "phase2" or "won")
             elseif notice_timer <= 0 then
                 notice = "FRUTAS SÃO A CHAVE"
-
                 notice_timer = 75
             end
         else
@@ -415,7 +449,7 @@ local function draw_portal(frame)
     local pulse = frame % 20 < 10 and Color.white or glow
     ui.spr(Sprites.art.forest_gate, portal_x, portal_y)
     ui.rect(portal_x + 2, portal_y + 2, portal_x + 29, portal_y + 30, glow)
-    ui.circ(portal_x + 16, portal_y + 17, 10 + (frame % 3), pulse)
+    draw_circle_outline(portal_x + 16, portal_y + 17, 10 + (frame % 3), pulse)
     if not has_fruit then
         ui.circfill(portal_x + 16, portal_y + 16, 3, Color.yellow)
     else
@@ -508,9 +542,9 @@ local function draw_portal_opening(frame)
     local center_x = portal_x + 16 - camera_x
     local center_y = portal_y + 16
     local color = frame % 8 < 4 and Color.frontier or Color.yellow
-    ui.circ(center_x, center_y, radius, color)
-    ui.circ(center_x, center_y, radius * 0.65, Color.white)
-    ui.circ(center_x, center_y, radius * 0.35, Color.frontier)
+    draw_circle_outline(center_x, center_y, radius, color)
+    draw_circle_outline(center_x, center_y, radius * 0.65, Color.white)
+    draw_circle_outline(center_x, center_y, radius * 0.35, Color.frontier)
     for index = 0, 7 do
         local angle_step = (frame + index * 8) % 32
         local x = center_x + math.floor((angle_step - 16) * progress)
@@ -535,7 +569,7 @@ local function draw_title(frame)
     print_center("VENCA OS DESAFIOS", 240, 108, Color.yellow)
     print_center("FRUTAS SÃO A CHAVE DA FRONTEIRA", 240, 126, Color.white)
     print_center("MOEDAS VALEM PONTOS", 240, 144, Color.yellow)
-    print_center("A: COMEÇAR", 240, 181, frame % 50 < 25 and Color.white or Color.frontier)
+    print_center("X: COMEÇAR", 240, 181, frame % 50 < 25 and Color.white or Color.frontier)
     ui.tile(Sprites.art.player, math.floor(frame / 14) % 4, 102, 205)
     ui.spr(Sprites.art.fruit, 348, 210)
 end
@@ -571,7 +605,7 @@ function loop(frame)
     ui.cls(Color.left_sky)
 
     if screen == "title" then
-        if ui.btnp(BTN_G) then reset_run() end
+        if ui.btnp(BTN_X) then reset_run() end
         draw_title(frame)
     elseif screen == "playing" then
         update_playing(frame)
@@ -589,7 +623,7 @@ function loop(frame)
         draw_portal_opening(frame)
     else
         local won = screen == "won"
-        if ui.btnp(BTN_G) then reset_run() end
+        if ui.btnp(BTN_X) then reset_run() end
         draw_ending(frame, won)
     end
 end
