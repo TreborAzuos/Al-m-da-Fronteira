@@ -361,7 +361,7 @@ local function update_playing(frame)
         notice_timer = 90
     end
 
-    if ui.btnp(BTN_X) then
+    if ui.btnp(BTN_G) then
         if overlaps(bounds, { x = portal_x - 1, y = portal_y - 18, w = 34, h = 50 }) then
             if has_fruit then
                 begin_transition(phase == 1 and "phase2" or "won")
@@ -605,7 +605,7 @@ function loop(frame)
     ui.cls(Color.left_sky)
 
     if screen == "title" then
-        if ui.btnp(BTN_X) then reset_run() end
+        if ui.btnp(BTN_G) then reset_run() end
         draw_title(frame)
     elseif screen == "playing" then
         update_playing(frame)
@@ -623,7 +623,7 @@ function loop(frame)
         draw_portal_opening(frame)
     else
         local won = screen == "won"
-        if ui.btnp(BTN_X) then reset_run() end
+        if ui.btnp(BTN_G) then reset_run() end
         draw_ending(frame, won)
     end
 end
