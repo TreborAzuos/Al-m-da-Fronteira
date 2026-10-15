@@ -326,12 +326,13 @@ local function update_playing(frame)
         notice_timer = 90
     end
 
-    if ui.btnp(BTN_X) then
+    if ui.btnp(BTN_G) then
         if overlaps(bounds, { x = portal_x - 1, y = portal_y - 18, w = 34, h = 50 }) then
             if has_fruit then
                 begin_transition(phase == 1 and "phase2" or "won")
             elseif notice_timer <= 0 then
-                notice = "FRUTA E A CHAVE"
+                notice = "FRUTAS SÃO A CHAVE"
+
                 notice_timer = 75
             end
         else
@@ -486,7 +487,7 @@ local function draw_playing(frame)
         if phase == 1 then
             print_center("VENCA OS DESAFIOS", 240, 78, Color.white)
             print_center("ATRAVESSE AS FRONTEIRAS", 240, 98, Color.yellow)
-            print_center("FRUTA E A CHAVE DA FRONTEIRA", 240, 118, Color.white)
+            print_center("FRUTAS SÃO A CHAVE DA FRONTEIRA", 240, 118, Color.white)
             print_center("MOEDAS VALEM PONTOS", 240, 138, Color.yellow)
         else
             print_center("FASE 2: FLORESTA DISTANTE", 240, 78, Color.white)
@@ -530,11 +531,11 @@ local function draw_title(frame)
     draw_portal(frame)
     ui.rectfill(66, 66, 414, 164, Color.deep)
     ui.rect(66, 66, 414, 164, Color.frontier)
-    print_center("ALEM DA FRONTEIRA", 240, 83, Color.white)
+    print_center("ALÉM DA FRONTEIRA", 240, 83, Color.white)
     print_center("VENCA OS DESAFIOS", 240, 108, Color.yellow)
-    print_center("FRUTA E CHAVE DA FRONTEIRA", 240, 126, Color.white)
+    print_center("FRUTAS SÃO A CHAVE DA FRONTEIRA", 240, 126, Color.white)
     print_center("MOEDAS VALEM PONTOS", 240, 144, Color.yellow)
-    print_center("X: COMECAR", 240, 181, frame % 50 < 25 and Color.white or Color.frontier)
+    print_center("A: COMEÇAR", 240, 181, frame % 50 < 25 and Color.white or Color.frontier)
     ui.tile(Sprites.art.player, math.floor(frame / 14) % 4, 102, 205)
     ui.spr(Sprites.art.fruit, 348, 210)
 end
@@ -570,7 +571,7 @@ function loop(frame)
     ui.cls(Color.left_sky)
 
     if screen == "title" then
-        if ui.btnp(BTN_X) then reset_run() end
+        if ui.btnp(BTN_G) then reset_run() end
         draw_title(frame)
     elseif screen == "playing" then
         update_playing(frame)
@@ -588,7 +589,7 @@ function loop(frame)
         draw_portal_opening(frame)
     else
         local won = screen == "won"
-        if ui.btnp(BTN_X) then reset_run() end
+        if ui.btnp(BTN_G) then reset_run() end
         draw_ending(frame, won)
     end
 end
