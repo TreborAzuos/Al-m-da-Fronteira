@@ -371,7 +371,7 @@ local function update_playing(frame)
         notice_timer = 90
     end
 
-    if ui.btnp(BTN_X) then
+    if ui.btnp(BTN_G) then
         if overlaps(bounds, { x = portal_x - 1, y = portal_y - 18, w = 34, h = 50 }) then
             if has_fruit then
                 begin_transition(phase == 1 and "phase2" or "phase3")
@@ -516,7 +516,7 @@ local function draw_playing(frame)
     ui.camera(0, 0)
     draw_hud()
     ui.rectfill(111, 32, 369, 47, Color.deep)
-    print_pixel("DPAD MOVER - B PULAR - A ATAQUE", 126, 36, Color.white)
+    print_pixel("DPAD MOVER B PULAR A ATAQUE", 126, 36, Color.white)
     if intro_timer > 0 then
         ui.rectfill(48, 68, 432, 160, Color.deep)
         ui.rect(48, 68, 432, 160, Color.frontier)
@@ -571,7 +571,7 @@ local function draw_title(frame)
     print_center("VENCA OS DESAFIOS", 240, 108, Color.yellow)
     print_center("FRUTAS SAO A CHAVE DA FRONTEIRA", 240, 126, Color.white)
     print_center("MOEDAS VALEM PONTOS", 240, 144, Color.yellow)
-    print_center("X: COMECAR", 240, 181, frame % 50 < 25 and Color.white or Color.frontier)
+    print_center("A: COMECAR", 240, 181, frame % 50 < 25 and Color.white or Color.frontier)
     ui.tile(Sprites.art.player, math.floor(frame / 14) % 4, 102, 205)
     ui.spr(Sprites.art.fruit, 348, 210)
 end
@@ -594,7 +594,7 @@ local function draw_celebration(frame)
     print_center("VOCE ATRAVESSOU A FRONTEIRA!", 240, 68, Color.yellow)
     print_center("AGORA E HORA DE DESCANSAR", 240, 88, Color.white)
     ui.rectfill(118, 239, 362, 261, Color.deep)
-    print_center("X: JOGAR NOVAMENTE", 240, 246,
+    print_center("A: JOGAR NOVAMENTE", 240, 246,
         frame % 50 < 25 and Color.white or Color.frontier)
 end
 
@@ -616,7 +616,7 @@ local function draw_ending(frame, won)
         print_center("A FRONTEIRA RESISTIU", 240, 105, Color.white)
         print_center("TENTE DE NOVO", 240, 131, Color.yellow)
     end
-    print_center("X: JOGAR NOVAMENTE", 240, 190, frame % 50 < 25 and Color.white or Color.frontier)
+    print_center("A: JOGAR NOVAMENTE", 240, 190, frame % 50 < 25 and Color.white or Color.frontier)
 end
 
 function loop(frame)
@@ -629,7 +629,7 @@ function loop(frame)
     ui.cls(Color.left_sky)
 
     if screen == "title" then
-        if ui.btnp(BTN_X) then reset_run() end
+        if ui.btnp(BTN_G) then reset_run() end
         draw_title(frame)
     elseif screen == "playing" then
         update_playing(frame)
@@ -652,7 +652,7 @@ function loop(frame)
             draw_portal_opening(frame)
         end
     elseif screen == "celebration" then
-        if ui.btnp(BTN_X) then
+        if ui.btnp(BTN_G) then
             reset_run()
             draw_playing(frame)
         else
@@ -660,7 +660,7 @@ function loop(frame)
         end
     else
         local won = screen == "won"
-        if ui.btnp(BTN_X) then reset_run() end
+        if ui.btnp(BTN_G) then reset_run() end
         draw_ending(frame, won)
     end
 end
