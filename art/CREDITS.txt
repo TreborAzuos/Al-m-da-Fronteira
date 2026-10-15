@@ -1,0 +1,15 @@
+Sprites recortados do pacote Brackeys Platformer Assets (CC0).
+
+O pacote foi reempacotado e modificado por Brackeys.
+
+Créditos dos sprites originais:
+- Knight: analogStudios_ — https://analogstudios.itch.io/camelot
+- Slime: analogStudios_ — https://analogstudios.itch.io/dungeonsprites
+- Coin: analogStudios_ — https://analogstudios.itch.io/four-seasons-platformer-sprites
+- Ground tile e fruit: RottingPixels — https://rottingpixels.itch.io/four-seasons-platformer-tileset-16x16free
+
+Áudio original do pacote por Brackeys e Asbjørn Thirslund; música por Brackeys e Sofia Thirslund.
+Fontes: Jayvee Enaguas / HarvettFox96 (Pixel Operator).
+
+Licença do pacote: Creative Commons Zero (CC0).
+https://creativecommons.org/publicdomain/zero/1.0/
