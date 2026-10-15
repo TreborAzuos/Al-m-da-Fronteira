@@ -150,7 +150,7 @@ local function reset_run()
     camera_x = 0
     player = make_player(spawn_x, spawn_y)
     slimes = {
-        { x = 310, y = 216, w = 24, h = 24, vx = 0.6, min_x = 292, max_x = 344, active = true }
+        { x = 310, y = 216, w = 24, h = 24, vx = 0.8, min_x = 292, max_x = 344, active = true }
     }
     coins = {
         { x = 58, y = 174, taken = false },
