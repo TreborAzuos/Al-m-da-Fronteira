@@ -569,7 +569,7 @@ local function draw_title(frame)
     print_center("VENCA OS DESAFIOS", 240, 108, Color.yellow)
     print_center("FRUTAS SÃO A CHAVE DA FRONTEIRA", 240, 126, Color.white)
     print_center("MOEDAS VALEM PONTOS", 240, 144, Color.yellow)
-    print_center("X: COMEÇAR", 240, 181, frame % 50 < 25 and Color.white or Color.frontier)
+    print_center("A: COMEÇAR", 240, 181, frame % 50 < 25 and Color.white or Color.frontier)
     ui.tile(Sprites.art.player, math.floor(frame / 14) % 4, 102, 205)
     ui.spr(Sprites.art.fruit, 348, 210)
 end
@@ -592,7 +592,7 @@ local function draw_ending(frame, won)
         print_center("A FRONTEIRA RESISTIU", 240, 105, Color.white)
         print_center("TENTE DE NOVO", 240, 131, Color.yellow)
     end
-    print_center("X: JOGAR NOVAMENTE", 240, 190, frame % 50 < 25 and Color.white or Color.frontier)
+    print_center("A: JOGAR NOVAMENTE", 240, 190, frame % 50 < 25 and Color.white or Color.frontier)
 end
 
 function loop(frame)
