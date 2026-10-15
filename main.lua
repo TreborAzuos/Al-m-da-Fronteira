@@ -34,7 +34,7 @@ local platforms = {
 local spawn_x = 12
 local spawn_y = 212
 local player_hitbox = { x = 9, y = 9, w = 13, h = 19 }
-local slime_hitbox = { x = 5, y = 14, w = 27, h = 10 }
+local slime_hitbox = { x = 5, y = 12, w = 15, h = 12 }
 local portal_hitbox = { x = 438, y = 190, w = 30, h = 50 }
 local player = {}
 local slime = {}
@@ -44,6 +44,25 @@ local collected = 0
 local screen = "title"
 local notice = ""
 local notice_timer = 0
+
+local function print_pixel(text, x, y, color)
+    local font = Sprites.art.font
+    if color == Color.yellow then
+        font = Sprites.art.font_yellow
+    elseif color == Color.frontier then
+        font = Sprites.art.font_frontier
+    end
+
+    for index = 1, #text do
+        local character = string.byte(text, index)
+        if character < 32 or character > 127 then character = 63 end
+        ui.tile(font, character - 32, x + (index - 1) * 8, y)
+    end
+end
+
+local function print_center(text, center_x, y, color)
+    print_pixel(text, center_x - #text * 4, y, color)
+end
 
 local function reset_run()
     player = {
@@ -55,9 +74,10 @@ local function reset_run()
         vy = 0,
         facing = 1,
         grounded = true,
-        invulnerable = 60
+        invulnerable = 60,
+        attack_timer = 0
     }
-    slime = { x = 310, y = 216, w = 32, h = 24, vx = 1.15 }
+    slime = { x = 310, y = 216, w = 24, h = 24, vx = 1.15, active = true }
     fragments = {
         { x = 58, y = 174, taken = false },
         { x = 216, y = 126, taken = false },
@@ -157,9 +177,11 @@ local function update_playing(frame)
         player.invulnerable = player.invulnerable - 1
     end
 
-    slime.x = slime.x + slime.vx
-    if slime.x < 292 or slime.x > 344 then
-        slime.vx = -slime.vx
+    if slime.active then
+        slime.x = slime.x + slime.vx
+        if slime.x < 292 or slime.x > 344 then
+            slime.vx = -slime.vx
+        end
     end
 
     local bounds = player_bounds()
@@ -175,7 +197,31 @@ local function update_playing(frame)
         end
     end
 
-    if overlaps(bounds, slime_bounds()) then
+    if ui.btnp(BTN_X) then
+        if overlaps(bounds, portal_hitbox) then
+            if collected == #fragments then
+                screen = "won"
+            elseif notice_timer <= 0 then
+                notice = "AINDA FALTAM FRAGMENTOS"
+                notice_timer = 75
+            end
+        else
+            player.attack_timer = 9
+            local attack = {
+                x = player.facing > 0 and bounds.x + bounds.w or bounds.x - 22,
+                y = bounds.y + 2,
+                w = 22,
+                h = 14
+            }
+            if slime.active and overlaps(attack, slime_bounds()) then
+                slime.active = false
+                notice = "SLIME AFASTADO"
+                notice_timer = 60
+            end
+        end
+    end
+
+    if slime.active and overlaps(bounds, slime_bounds()) then
         lose_life()
     end
 
@@ -183,13 +229,8 @@ local function update_playing(frame)
         lose_life()
     end
 
-    if overlaps(bounds, portal_hitbox) and ui.btnp(BTN_X) then
-        if collected == #fragments then
-            screen = "won"
-        elseif notice_timer <= 0 then
-            notice = "AINDA FALTAM FRAGMENTOS"
-            notice_timer = 75
-        end
+    if player.attack_timer > 0 then
+        player.attack_timer = player.attack_timer - 1
     end
 
     if notice_timer > 0 then
@@ -224,8 +265,8 @@ local function draw_background(frame)
         ui.circfill(240, y, 3, Color.white)
     end
 
-    ui.print("LADO A", 18, 18, Color.white)
-    ui.print("LADO B", 398, 18, Color.white)
+    print_pixel("LADO A", 16, 18, Color.white)
+    print_pixel("LADO B", 416, 18, Color.white)
 end
 
 local function draw_platforms()
@@ -255,7 +296,7 @@ end
 
 local function draw_hud()
     ui.rectfill(7, 7, 163, 29, Color.deep)
-    ui.print("FRAGMENTOS", 14, 14, Color.white)
+    print_pixel("FRAGMENTOS", 14, 14, Color.white)
     for index = 1, #fragments do
         ui.spr(Sprites.art.fragment, 102 + (index - 1) * 17, 10)
         if fragments[index].taken then
@@ -264,7 +305,7 @@ local function draw_hud()
     end
 
     ui.rectfill(355, 7, 472, 29, Color.deep)
-    ui.print("VIDAS", 363, 14, Color.white)
+    print_pixel("VIDAS", 363, 14, Color.white)
     for index = 1, lives do
         ui.circfill(414 + (index - 1) * 16, 17, 5, Color.red)
     end
@@ -281,17 +322,27 @@ local function draw_playing(frame)
         end
     end
 
-    ui.spr(Sprites.art.slime, math.floor(slime.x), slime.y, slime.vx < 0)
+    if slime.active then
+        local slime_frame = math.floor(frame / 12) % 4
+        ui.tile(Sprites.art.slime, slime_frame + (slime.vx < 0 and 1024 or 0), math.floor(slime.x), slime.y)
+    end
     if player.invulnerable == 0 or frame % 8 < 4 then
-        ui.spr(Sprites.art.player, math.floor(player.x), math.floor(player.y), player.facing < 0)
+        local player_frame = math.floor(frame / 14) % 4
+        ui.tile(Sprites.art.player, player_frame + (player.facing < 0 and 1024 or 0), math.floor(player.x), math.floor(player.y))
+    end
+    if player.attack_timer > 0 then
+        local bounds = player_bounds()
+        local slash_x = player.facing > 0 and bounds.x + bounds.w + 2 or bounds.x - 18
+        ui.line(slash_x, bounds.y + 3, slash_x + 16, bounds.y + 12, Color.yellow)
+        ui.line(slash_x + 4, bounds.y + 1, slash_x + 12, bounds.y + 15, Color.white)
     end
 
     draw_hud()
-    ui.rectfill(144, 32, 338, 47, Color.deep)
-    ui.print("DPAD MOVER  B PULAR  A ACAO", 150, 36, Color.white)
+    ui.rectfill(112, 32, 368, 47, Color.deep)
+    print_pixel("DPAD MOVER  B PULAR  X ACAO", 128, 36, Color.white)
     if notice_timer > 0 then
         ui.rectfill(124, 108, 356, 132, Color.deep)
-        ui.print(notice, 151, 116, Color.yellow)
+        print_center(notice, 240, 116, Color.yellow)
     end
 end
 
@@ -301,11 +352,11 @@ local function draw_title(frame)
     draw_portal(frame)
     ui.rectfill(66, 66, 414, 157, Color.deep)
     ui.rect(66, 66, 414, 157, Color.frontier)
-    ui.print("ALEM DA FRONTEIRA", 127, 83, Color.white)
-    ui.print("REUNA OS 3 FRAGMENTOS", 135, 108, Color.yellow)
-    ui.print("E ABRA O PORTAL", 163, 126, Color.white)
-    ui.print("A: COMECAR", 184, 181, frame % 50 < 25 and Color.white or Color.frontier)
-    ui.spr(Sprites.art.player, 102, 205)
+    print_center("ALEM DA FRONTEIRA", 240, 83, Color.white)
+    print_center("REUNA OS 3 FRAGMENTOS", 240, 108, Color.yellow)
+    print_center("E ABRA O PORTAL", 240, 126, Color.white)
+    print_center("X: COMECAR", 240, 181, frame % 50 < 25 and Color.white or Color.frontier)
+    ui.tile(Sprites.art.player, math.floor(frame / 14) % 4, 102, 205)
     ui.spr(Sprites.art.fragment, 348, 210)
 end
 
@@ -316,13 +367,13 @@ local function draw_ending(frame, won)
     ui.rectfill(88, 84, 392, 174, Color.deep)
     ui.rect(88, 84, 392, 174, won and Color.frontier or Color.red)
     if won then
-        ui.print("FRONTEIRA ABERTA!", 151, 105, Color.white)
-        ui.print("OS DOIS LADOS ESTAO LIVRES", 120, 131, Color.yellow)
+        print_center("FRONTEIRA ABERTA!", 240, 105, Color.white)
+        print_center("OS DOIS LADOS ESTAO LIVRES", 240, 131, Color.yellow)
     else
-        ui.print("A FRONTEIRA RESISTIU", 133, 105, Color.white)
-        ui.print("TENTE DE NOVO", 171, 131, Color.yellow)
+        print_center("A FRONTEIRA RESISTIU", 240, 105, Color.white)
+        print_center("TENTE DE NOVO", 240, 131, Color.yellow)
     end
-    ui.print("A: JOGAR NOVAMENTE", 157, 190, frame % 50 < 25 and Color.white or Color.frontier)
+    print_center("X: JOGAR NOVAMENTE", 240, 190, frame % 50 < 25 and Color.white or Color.frontier)
 end
 
 function loop(frame)

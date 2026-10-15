@@ -9,7 +9,7 @@ Créditos dos sprites originais:
 - Ground tile e fruit: RottingPixels — https://rottingpixels.itch.io/four-seasons-platformer-tileset-16x16free
 
 Áudio original do pacote por Brackeys e Asbjørn Thirslund; música por Brackeys e Sofia Thirslund.
-Fontes: Jayvee Enaguas / HarvettFox96 (Pixel Operator).
+Fonte PixelOperator8: Jayvee Enaguas / HarvettFox96, incluída no pacote Brackeys Platformer Assets.
 
 Licença do pacote: Creative Commons Zero (CC0).
 https://creativecommons.org/publicdomain/zero/1.0/
