@@ -38,9 +38,12 @@ local slime_hitbox = { x = 5, y = 12, w = 15, h = 12 }
 local portal_hitbox = { x = 438, y = 190, w = 30, h = 50 }
 local player = {}
 local slime = {}
-local fragments = {}
+local coins = {}
+local fruit = {}
 local lives = 3
-local collected = 0
+local score = 0
+local has_fruit = false
+local intro_timer = 0
 local screen = "title"
 local notice = ""
 local notice_timer = 0
@@ -78,15 +81,18 @@ local function reset_run()
         attack_timer = 0
     }
     slime = { x = 310, y = 216, w = 24, h = 24, vx = 1.15, active = true }
-    fragments = {
+    coins = {
         { x = 58, y = 174, taken = false },
         { x = 216, y = 126, taken = false },
         { x = 374, y = 174, taken = false }
     }
+    fruit = { x = 0, y = 0, available = false }
     lives = 3
-    collected = 0
+    score = 0
+    has_fruit = false
     notice = ""
     notice_timer = 0
+    intro_timer = 180
     screen = "playing"
 end
 
@@ -153,6 +159,11 @@ local function lose_life()
 end
 
 local function update_playing(frame)
+    if intro_timer > 0 then
+        intro_timer = intro_timer - 1
+        return
+    end
+
     player.vx = 0
     if ui.btn(LEFT) then
         player.vx = -2.1
@@ -185,24 +196,36 @@ local function update_playing(frame)
     end
 
     local bounds = player_bounds()
-    for _, fragment in ipairs(fragments) do
-        if not fragment.taken and overlaps(bounds, {
-            x = fragment.x + 3,
-            y = fragment.y + 3,
+    for _, coin in ipairs(coins) do
+        if not coin.taken and overlaps(bounds, {
+            x = coin.x + 3,
+            y = coin.y + 3,
             w = 10,
             h = 10
         }) then
-            fragment.taken = true
-            collected = collected + 1
+            coin.taken = true
+            score = score + 10
         end
+    end
+
+    if fruit.available and overlaps(bounds, {
+        x = fruit.x + 2,
+        y = fruit.y + 2,
+        w = 12,
+        h = 12
+    }) then
+        fruit.available = false
+        has_fruit = true
+        notice = "FRUTA CHAVE OBTIDA"
+        notice_timer = 90
     end
 
     if ui.btnp(BTN_X) then
         if overlaps(bounds, portal_hitbox) then
-            if collected == #fragments then
+            if has_fruit then
                 screen = "won"
             elseif notice_timer <= 0 then
-                notice = "AINDA FALTAM FRAGMENTOS"
+                notice = "FRUTA E A CHAVE"
                 notice_timer = 75
             end
         else
@@ -215,8 +238,11 @@ local function update_playing(frame)
             }
             if slime.active and overlaps(attack, slime_bounds()) then
                 slime.active = false
-                notice = "SLIME AFASTADO"
-                notice_timer = 60
+                fruit.x = slime.x + 4
+                fruit.y = slime.y + 4
+                fruit.available = true
+                notice = "SLIME SOLTOU FRUTA"
+                notice_timer = 75
             end
         end
     end
@@ -259,14 +285,6 @@ local function draw_background(frame)
     ui.trisfill(325, 184, 415, 112, 480, 184, Color.mountain)
     ui.line(0, 218, 479, 218, Color.deep)
 
-    ui.rectfill(237, 36, 243, 239, Color.deep)
-    ui.rectfill(239, 36, 241, 239, Color.frontier)
-    for y = 54, 222, 24 do
-        ui.circfill(240, y, 3, Color.white)
-    end
-
-    print_pixel("LADO A", 16, 18, Color.white)
-    print_pixel("LADO B", 416, 18, Color.white)
 end
 
 local function draw_platforms()
@@ -280,7 +298,7 @@ local function draw_platforms()
 end
 
 local function draw_portal(frame)
-    local open = collected == #fragments
+    local open = has_fruit
     local glow = open and Color.frontier or Color.red
     local pulse = frame % 20 < 10 and Color.white or glow
     ui.rectfill(438, 190, 467, 239, Color.deep)
@@ -296,13 +314,9 @@ end
 
 local function draw_hud()
     ui.rectfill(7, 7, 163, 29, Color.deep)
-    print_pixel("FRAGMENTOS", 14, 14, Color.white)
-    for index = 1, #fragments do
-        ui.spr(Sprites.art.fragment, 102 + (index - 1) * 17, 10)
-        if fragments[index].taken then
-            ui.line(102 + (index - 1) * 17, 10, 116 + (index - 1) * 17, 24, Color.grass)
-        end
-    end
+    print_pixel("PONTOS", 14, 14, Color.white)
+    ui.spr(Sprites.art.fragment, 68, 10)
+    print_pixel(string.format("%03d", score), 88, 14, Color.yellow)
 
     ui.rectfill(355, 7, 472, 29, Color.deep)
     print_pixel("VIDAS", 363, 14, Color.white)
@@ -316,10 +330,14 @@ local function draw_playing(frame)
     draw_platforms()
     draw_portal(frame)
 
-    for _, fragment in ipairs(fragments) do
-        if not fragment.taken then
-            ui.spr(Sprites.art.fragment, fragment.x, fragment.y)
+    for _, coin in ipairs(coins) do
+        if not coin.taken then
+            ui.spr(Sprites.art.fragment, coin.x, coin.y)
         end
+    end
+
+    if fruit.available then
+        ui.spr(Sprites.art.fruit, math.floor(fruit.x), math.floor(fruit.y))
     end
 
     if slime.active then
@@ -340,6 +358,14 @@ local function draw_playing(frame)
     draw_hud()
     ui.rectfill(112, 32, 368, 47, Color.deep)
     print_pixel("DPAD MOVER  B PULAR  X ACAO", 128, 36, Color.white)
+    if intro_timer > 0 then
+        ui.rectfill(48, 68, 432, 160, Color.deep)
+        ui.rect(48, 68, 432, 160, Color.frontier)
+        print_center("VENCA OS DESAFIOS", 240, 78, Color.white)
+        print_center("ATRAVESSE AS FRONTEIRAS", 240, 98, Color.yellow)
+        print_center("FRUTA E A CHAVE DA FRONTEIRA", 240, 118, Color.white)
+        print_center("MOEDAS VALEM PONTOS", 240, 138, Color.yellow)
+    end
     if notice_timer > 0 then
         ui.rectfill(124, 108, 356, 132, Color.deep)
         print_center(notice, 240, 116, Color.yellow)
@@ -350,14 +376,15 @@ local function draw_title(frame)
     draw_background(frame)
     draw_platforms()
     draw_portal(frame)
-    ui.rectfill(66, 66, 414, 157, Color.deep)
-    ui.rect(66, 66, 414, 157, Color.frontier)
+    ui.rectfill(66, 66, 414, 164, Color.deep)
+    ui.rect(66, 66, 414, 164, Color.frontier)
     print_center("ALEM DA FRONTEIRA", 240, 83, Color.white)
-    print_center("REUNA OS 3 FRAGMENTOS", 240, 108, Color.yellow)
-    print_center("E ABRA O PORTAL", 240, 126, Color.white)
+    print_center("VENCA OS DESAFIOS", 240, 108, Color.yellow)
+    print_center("FRUTA E CHAVE DA FRONTEIRA", 240, 126, Color.white)
+    print_center("MOEDAS VALEM PONTOS", 240, 144, Color.yellow)
     print_center("X: COMECAR", 240, 181, frame % 50 < 25 and Color.white or Color.frontier)
     ui.tile(Sprites.art.player, math.floor(frame / 14) % 4, 102, 205)
-    ui.spr(Sprites.art.fragment, 348, 210)
+    ui.spr(Sprites.art.fruit, 348, 210)
 end
 
 local function draw_ending(frame, won)

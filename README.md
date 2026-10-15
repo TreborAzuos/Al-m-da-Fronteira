@@ -1,6 +1,6 @@
 # Além da Fronteira
 
-Um platformer curto sobre atravessar a fronteira entre dois mundos.
+Um platformer curto sobre vencer desafios e atravessar fronteiras entre dois mundos.
 
 ## Controles
 
@@ -10,7 +10,7 @@ Um platformer curto sobre atravessar a fronteira entre dois mundos.
 
 ## Objetivo
 
-Atravesse a fase, reúna os fragmentos, afaste o slime com X e use X junto ao portal para abrir a fronteira.
+Vença os desafios e atravesse as fronteiras. Afaste o slime com X para fazê-lo soltar a fruta vermelha; pegue a fruta e use X junto ao portal para abrir a fronteira. As moedas valem 10 pontos cada.
 
 ## Arte
 
