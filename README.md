@@ -1,17 +1,17 @@
 # Além da Fronteira
 
-Um platformer curto sobre vencer desafios e atravessar fronteiras entre dois mundos.
+Um platformer curto sobre vencer desafios e atravessar fronteiras entre dois mundos. A fase 2 leva a aventura para uma floresta em rolagem lateral.
 
 ## Controles
 
 - DPAD: mover
 - B: pular
-- X: afastar o slime, começar, interagir com o portal e jogar novamente
+- X: atacar, começar, interagir com o portal e jogar novamente
 
 ## Objetivo
 
-Vença os desafios e atravesse as fronteiras. Afaste o slime com X para fazê-lo soltar a fruta vermelha; pegue a fruta e use X junto ao portal para abrir a fronteira. As moedas valem 10 pontos cada.
+Vença os desafios e atravesse as fronteiras. Ataque os slimes com X para fazê-los soltar a fruta vermelha; pegue a fruta e use X junto ao portal para abrir a fronteira. Na fase 2, atravesse o percurso de plataforma com rolagem lateral. As moedas valem 10 pontos cada.
 
 ## Arte
 
-Os sprites animados e a fonte PixelOperator8 em `art/` vêm do pacote Brackeys Platformer Assets, distribuído sob CC0. Fontes e créditos completos estão em `art/CREDITS.txt`.
+Os sprites do knight, slime, fruta, moedas e espada e a fonte PixelOperator8 vêm do Brackeys Platformer Assets (CC0). A vegetação e a passagem de água vêm do Tiny Wonder Forest Asset Pack, de Butter Milk. Recortes preparados para o jogo ficam em `art/`. Fontes e créditos completos estão em `art/CREDITS.txt`.

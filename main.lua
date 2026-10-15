@@ -16,10 +16,12 @@ local Color = {
     white = Palette.hex(0xffffff),
     red = Palette.hex(0xac3232),
     black = Palette.hex(0x000000),
-    blue = Palette.hex(0x639bff)
+    blue = Palette.hex(0x639bff),
+    forest_dark = Palette.hex(0x203c35),
+    forest_light = Palette.hex(0x8fce58)
 }
 
-local platforms = {
+local phase_one_platforms = {
     { x = 0, y = 240, w = 112 },
     { x = 160, y = 240, w = 80 },
     { x = 288, y = 240, w = 80 },
@@ -31,15 +33,35 @@ local platforms = {
     { x = 352, y = 200, w = 64 }
 }
 
+local phase_two_platforms = {
+    { x = 0, y = 240, w = 208 },
+    { x = 248, y = 240, w = 152 },
+    { x = 440, y = 240, w = 150 },
+    { x = 632, y = 240, w = 160 },
+    { x = 832, y = 240, w = 160 },
+    { x = 1032, y = 240, w = 168 },
+    { x = 92, y = 202, w = 72 },
+    { x = 274, y = 184, w = 72 },
+    { x = 456, y = 194, w = 80 },
+    { x = 680, y = 184, w = 112 },
+    { x = 874, y = 196, w = 80 },
+    { x = 1000, y = 188, w = 80 }
+}
+
 local spawn_x = 12
 local spawn_y = 212
 local player_hitbox = { x = 9, y = 9, w = 13, h = 19 }
 local slime_hitbox = { x = 5, y = 12, w = 15, h = 12 }
-local portal_hitbox = { x = 438, y = 190, w = 30, h = 50 }
 local player = {}
-local slime = {}
+local slimes = {}
 local coins = {}
 local fruit = {}
+local platforms = phase_one_platforms
+local phase = 1
+local world_width = 480
+local camera_x = 0
+local portal_x = 438
+local portal_y = 208
 local lives = 3
 local score = 0
 local has_fruit = false
@@ -47,6 +69,8 @@ local intro_timer = 0
 local screen = "title"
 local notice = ""
 local notice_timer = 0
+local opening_timer = 0
+local transition_target = "phase2"
 
 local function print_pixel(text, x, y, color)
     local font = Sprites.art.font
@@ -67,10 +91,10 @@ local function print_center(text, center_x, y, color)
     print_pixel(text, center_x - #text * 4, y, color)
 end
 
-local function reset_run()
-    player = {
-        x = spawn_x,
-        y = spawn_y,
+local function make_player(x, y)
+    return {
+        x = x,
+        y = y,
         w = 32,
         h = 32,
         vx = 0,
@@ -80,7 +104,19 @@ local function reset_run()
         invulnerable = 60,
         attack_timer = 0
     }
-    slime = { x = 310, y = 216, w = 24, h = 24, vx = 1.15, active = true }
+end
+
+local function reset_run()
+    phase = 1
+    platforms = phase_one_platforms
+    world_width = 480
+    portal_x = 438
+    portal_y = 208
+    camera_x = 0
+    player = make_player(spawn_x, spawn_y)
+    slimes = {
+        { x = 310, y = 216, w = 24, h = 24, vx = 1.15, min_x = 292, max_x = 344, active = true }
+    }
     coins = {
         { x = 58, y = 174, taken = false },
         { x = 216, y = 126, taken = false },
@@ -93,6 +129,37 @@ local function reset_run()
     notice = ""
     notice_timer = 0
     intro_timer = 180
+    opening_timer = 0
+    screen = "playing"
+end
+
+local function start_phase_two()
+    phase = 2
+    platforms = phase_two_platforms
+    world_width = 1200
+    portal_x = 1110
+    portal_y = 208
+    spawn_x = 12
+    spawn_y = 212
+    player = make_player(spawn_x, spawn_y)
+    slimes = {
+        { x = 328, y = 216, w = 24, h = 24, vx = 1.25, min_x = 296, max_x = 368, active = true },
+        { x = 714, y = 160, w = 24, h = 24, vx = -0.9, min_x = 690, max_x = 756, active = true }
+    }
+    coins = {
+        { x = 142, y = 174, taken = false },
+        { x = 314, y = 150, taken = false },
+        { x = 486, y = 158, taken = false },
+        { x = 716, y = 144, taken = false },
+        { x = 900, y = 154, taken = false },
+        { x = 1040, y = 130, taken = false }
+    }
+    fruit = { x = 0, y = 0, available = false }
+    has_fruit = false
+    camera_x = 0
+    intro_timer = 150
+    notice = ""
+    notice_timer = 0
     screen = "playing"
 end
 
@@ -110,7 +177,7 @@ local function player_bounds()
     }
 end
 
-local function slime_bounds()
+local function slime_bounds(slime)
     return {
         x = slime.x + slime_hitbox.x,
         y = slime.y + slime_hitbox.y,
@@ -158,6 +225,42 @@ local function lose_life()
     player.invulnerable = 90
 end
 
+local function begin_transition(target)
+    screen = "transition"
+    transition_target = target
+    opening_timer = 90
+end
+
+local function attack_slimes(bounds)
+    local attack = {
+        x = player.facing > 0 and bounds.x + bounds.w - 1 or bounds.x - 25,
+        y = bounds.y + 1,
+        w = 26,
+        h = 22
+    }
+    local hit_any = false
+
+    for _, slime in ipairs(slimes) do
+        if slime.active and overlaps(attack, slime_bounds(slime)) then
+            slime.active = false
+            score = score + 50
+            hit_any = true
+            if not has_fruit and not fruit.available then
+                fruit.x = slime.x + 4
+                fruit.y = slime.y + 4
+                fruit.available = true
+                notice = "SLIME SOLTOU FRUTA"
+                notice_timer = 75
+            end
+        end
+    end
+
+    if hit_any and not fruit.available and not has_fruit then
+        notice = "SLIME AFASTADO"
+        notice_timer = 60
+    end
+end
+
 local function update_playing(frame)
     if intro_timer > 0 then
         intro_timer = intro_timer - 1
@@ -178,7 +281,7 @@ local function update_playing(frame)
         player.grounded = false
     end
 
-    player.x = ui.mid(0, player.x + player.vx, 480 - player_hitbox.x - player_hitbox.w)
+    player.x = ui.mid(0, player.x + player.vx, world_width - player_hitbox.x - player_hitbox.w)
     local previous_y = player.y
     player.vy = math.min(6, player.vy + 0.26)
     player.y = player.y + player.vy
@@ -188,10 +291,13 @@ local function update_playing(frame)
         player.invulnerable = player.invulnerable - 1
     end
 
-    if slime.active then
-        slime.x = slime.x + slime.vx
-        if slime.x < 292 or slime.x > 344 then
-            slime.vx = -slime.vx
+    for _, slime in ipairs(slimes) do
+        if slime.active then
+            slime.x = slime.x + slime.vx
+            if slime.x < slime.min_x or slime.x > slime.max_x then
+                slime.vx = -slime.vx
+                slime.x = ui.mid(slime.min_x, slime.x, slime.max_x)
+            end
         end
     end
 
@@ -221,38 +327,33 @@ local function update_playing(frame)
     end
 
     if ui.btnp(BTN_X) then
-        if overlaps(bounds, portal_hitbox) then
+        if overlaps(bounds, { x = portal_x - 1, y = portal_y - 18, w = 34, h = 50 }) then
             if has_fruit then
-                screen = "won"
+                begin_transition(phase == 1 and "phase2" or "won")
             elseif notice_timer <= 0 then
                 notice = "FRUTA E A CHAVE"
                 notice_timer = 75
             end
         else
-            player.attack_timer = 9
-            local attack = {
-                x = player.facing > 0 and bounds.x + bounds.w or bounds.x - 22,
-                y = bounds.y + 2,
-                w = 22,
-                h = 14
-            }
-            if slime.active and overlaps(attack, slime_bounds()) then
-                slime.active = false
-                fruit.x = slime.x + 4
-                fruit.y = slime.y + 4
-                fruit.available = true
-                notice = "SLIME SOLTOU FRUTA"
-                notice_timer = 75
-            end
+            player.attack_timer = 12
+            attack_slimes(bounds)
         end
     end
 
-    if slime.active and overlaps(bounds, slime_bounds()) then
-        lose_life()
+    for _, slime in ipairs(slimes) do
+        if slime.active and overlaps(bounds, slime_bounds(slime)) then
+            lose_life()
+        end
     end
 
     if bounds.y > 270 then
         lose_life()
+    end
+
+    if phase == 2 then
+        camera_x = ui.mid(0, player.x - 166, world_width - 480)
+    else
+        camera_x = 0
     end
 
     if player.attack_timer > 0 then
@@ -262,7 +363,6 @@ local function update_playing(frame)
     if notice_timer > 0 then
         notice_timer = notice_timer - 1
     end
-
 end
 
 local stars = {
@@ -271,20 +371,32 @@ local stars = {
     { x = 389, y = 30 }, { x = 451, y = 54 }
 }
 
+local function draw_forest_layer(sprite, start_x, y, spacing, parallax, phase_offset)
+    local scroll = math.floor(camera_x * parallax)
+    local first = math.floor((scroll - start_x) / spacing)
+    local last = math.floor((scroll + 480 - start_x) / spacing)
+    for index = first, last do
+        local x = start_x + index * spacing - scroll
+        ui.spr(sprite, x, y + ((index + phase_offset) % 2) * 5)
+    end
+end
+
 local function draw_background(frame)
-    ui.rectfill(0, 0, 239, 239, Color.left_sky)
-    ui.rectfill(240, 0, 479, 239, Color.right_sky)
+    ui.rectfill(0, 0, 479, 239, Color.left_sky)
+    ui.rectfill(0, 146, 479, 239, Color.forest_dark)
 
     for index, star in ipairs(stars) do
         local color = (frame // (8 + index) + index) % 2 == 0 and Color.white or Color.frontier
         ui.rectfill(star.x, star.y, star.x + 2, star.y + 2, color)
     end
 
-    ui.trisfill(0, 184, 95, 95, 190, 184, Color.mountain)
-    ui.trisfill(180, 184, 285, 84, 390, 184, Color.mountain_light)
-    ui.trisfill(325, 184, 415, 112, 480, 184, Color.mountain)
+    ui.trisfill(0, 194, 100, 112, 198, 194, Color.mountain)
+    ui.trisfill(180, 194, 290, 88, 405, 194, Color.mountain_light)
+    ui.trisfill(330, 194, 415, 112, 480, 194, Color.mountain)
+    draw_forest_layer(Sprites.art.forest_canopy_a, -24, 116, 88, 0.20, 0)
+    draw_forest_layer(Sprites.art.forest_canopy_b, 22, 144, 72, 0.34, 1)
+    draw_forest_layer(Sprites.art.forest_canopy_c, 0, 174, 64, 0.48, 0)
     ui.line(0, 218, 479, 218, Color.deep)
-
 end
 
 local function draw_platforms()
@@ -298,25 +410,25 @@ local function draw_platforms()
 end
 
 local function draw_portal(frame)
-    local open = has_fruit
-    local glow = open and Color.frontier or Color.red
+    local glow = has_fruit and Color.frontier or Color.forest_light
     local pulse = frame % 20 < 10 and Color.white or glow
-    ui.rectfill(438, 190, 467, 239, Color.deep)
-    ui.rect(438, 190, 467, 239, glow)
-    ui.rectfill(445, 197, 460, 239, open and Color.blue or Color.black)
-    ui.line(445, 197, 460, 197, pulse)
-    ui.circfill(452, 199, 5, pulse)
-    if not open then
-        ui.rectfill(449, 216, 456, 230, Color.orange)
-        ui.rectfill(451, 212, 454, 217, Color.yellow)
+    ui.spr(Sprites.art.forest_gate, portal_x, portal_y)
+    ui.rect(portal_x + 2, portal_y + 2, portal_x + 29, portal_y + 30, glow)
+    ui.circ(portal_x + 16, portal_y + 17, 10 + (frame % 3), pulse)
+    if not has_fruit then
+        ui.circfill(portal_x + 16, portal_y + 16, 3, Color.yellow)
+    else
+        ui.circfill(portal_x + 16, portal_y + 16, 3, pulse)
     end
 end
 
 local function draw_hud()
-    ui.rectfill(7, 7, 163, 29, Color.deep)
-    print_pixel("PONTOS", 14, 14, Color.white)
-    ui.spr(Sprites.art.fragment, 68, 10)
-    print_pixel(string.format("%03d", score), 88, 14, Color.yellow)
+    ui.camera(0, 0)
+    ui.rectfill(7, 7, 178, 29, Color.deep)
+    print_pixel("FASE " .. tostring(phase), 14, 14, Color.frontier)
+    print_pixel("PTS", 68, 14, Color.white)
+    ui.spr(Sprites.art.fragment, 92, 10)
+    print_pixel(string.format("%03d", score), 111, 14, Color.yellow)
 
     ui.rectfill(355, 7, 472, 29, Color.deep)
     print_pixel("VIDAS", 363, 14, Color.white)
@@ -325,8 +437,17 @@ local function draw_hud()
     end
 end
 
+local function draw_attack(frame)
+    local attack_frame = math.min(3, math.floor((12 - player.attack_timer) / 4) + 1)
+    local sprite = Sprites.art["sword_" .. tostring(attack_frame)]
+    local bounds = player_bounds()
+    local sx = player.facing > 0 and bounds.x + bounds.w - 4 or bounds.x - 25
+    ui.spr(sprite, sx, bounds.y - 2, player.facing < 0)
+end
+
 local function draw_playing(frame)
     draw_background(frame)
+    ui.camera(camera_x, 0)
     draw_platforms()
     draw_portal(frame)
 
@@ -340,31 +461,39 @@ local function draw_playing(frame)
         ui.spr(Sprites.art.fruit, math.floor(fruit.x), math.floor(fruit.y))
     end
 
-    if slime.active then
-        local slime_frame = math.floor(frame / 12) % 4
-        ui.tile(Sprites.art.slime, slime_frame + (slime.vx < 0 and 1024 or 0), math.floor(slime.x), slime.y)
+    for _, slime in ipairs(slimes) do
+        if slime.active then
+            local slime_frame = math.floor(frame / 12) % 4
+            ui.tile(Sprites.art.slime, slime_frame + (slime.vx < 0 and 1024 or 0), math.floor(slime.x), slime.y)
+        end
     end
+
     if player.invulnerable == 0 or frame % 8 < 4 then
         local player_frame = math.floor(frame / 14) % 4
         ui.tile(Sprites.art.player, player_frame + (player.facing < 0 and 1024 or 0), math.floor(player.x), math.floor(player.y))
     end
     if player.attack_timer > 0 then
-        local bounds = player_bounds()
-        local slash_x = player.facing > 0 and bounds.x + bounds.w + 2 or bounds.x - 18
-        ui.line(slash_x, bounds.y + 3, slash_x + 16, bounds.y + 12, Color.yellow)
-        ui.line(slash_x + 4, bounds.y + 1, slash_x + 12, bounds.y + 15, Color.white)
+        draw_attack(frame)
     end
 
+    ui.camera(0, 0)
     draw_hud()
-    ui.rectfill(112, 32, 368, 47, Color.deep)
-    print_pixel("DPAD MOVER  B PULAR  X ACAO", 128, 36, Color.white)
+    ui.rectfill(111, 32, 369, 47, Color.deep)
+    print_pixel("DPAD MOVER  B PULAR  X ATAQUE", 126, 36, Color.white)
     if intro_timer > 0 then
         ui.rectfill(48, 68, 432, 160, Color.deep)
         ui.rect(48, 68, 432, 160, Color.frontier)
-        print_center("VENCA OS DESAFIOS", 240, 78, Color.white)
-        print_center("ATRAVESSE AS FRONTEIRAS", 240, 98, Color.yellow)
-        print_center("FRUTA E A CHAVE DA FRONTEIRA", 240, 118, Color.white)
-        print_center("MOEDAS VALEM PONTOS", 240, 138, Color.yellow)
+        if phase == 1 then
+            print_center("VENCA OS DESAFIOS", 240, 78, Color.white)
+            print_center("ATRAVESSE AS FRONTEIRAS", 240, 98, Color.yellow)
+            print_center("FRUTA E A CHAVE DA FRONTEIRA", 240, 118, Color.white)
+            print_center("MOEDAS VALEM PONTOS", 240, 138, Color.yellow)
+        else
+            print_center("FASE 2: FLORESTA DISTANTE", 240, 78, Color.white)
+            print_center("SIGA PELAS PLATAFORMAS", 240, 98, Color.yellow)
+            print_center("UM SLIME GUARDA O ALTO", 240, 118, Color.white)
+            print_center("ACHE A FRUTA E O PORTAL", 240, 138, Color.yellow)
+        end
     end
     if notice_timer > 0 then
         ui.rectfill(124, 108, 356, 132, Color.deep)
@@ -372,8 +501,31 @@ local function draw_playing(frame)
     end
 end
 
+local function draw_portal_opening(frame)
+    local progress = (90 - opening_timer) / 90
+    local radius = 8 + progress * 43
+    local center_x = portal_x + 16 - camera_x
+    local center_y = portal_y + 16
+    local color = frame % 8 < 4 and Color.frontier or Color.yellow
+    ui.circ(center_x, center_y, radius, color)
+    ui.circ(center_x, center_y, radius * 0.65, Color.white)
+    ui.circ(center_x, center_y, radius * 0.35, Color.frontier)
+    for index = 0, 7 do
+        local angle_step = (frame + index * 8) % 32
+        local x = center_x + math.floor((angle_step - 16) * progress)
+        local y = center_y - math.floor(24 * progress) + (index % 2) * math.floor(48 * progress)
+        ui.circfill(x, y, 2, index % 2 == 0 and Color.white or Color.yellow)
+    end
+    ui.clip(0, 0, 480, 270)
+    ui.fillp({ 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA, 0x55, 0xAA })
+    ui.rectfill(0, 0, 479, 269, Color.deep)
+    ui.fillp()
+    print_center(transition_target == "phase2" and "FRONTEIRA SE ABRINDO" or "ULTIMA FRONTEIRA", 240, 220, Color.white)
+end
+
 local function draw_title(frame)
     draw_background(frame)
+    ui.camera(0, 0)
     draw_platforms()
     draw_portal(frame)
     ui.rectfill(66, 66, 414, 164, Color.deep)
@@ -389,8 +541,13 @@ end
 
 local function draw_ending(frame, won)
     draw_background(frame)
+    ui.camera(0, 0)
     draw_platforms()
-    draw_portal(frame)
+    if phase == 2 then
+        ui.spr(Sprites.art.forest_gate, 420, 205)
+    else
+        draw_portal(frame)
+    end
     ui.rectfill(88, 84, 392, 174, Color.deep)
     ui.rect(88, 84, 392, 174, won and Color.frontier or Color.red)
     if won then
@@ -418,6 +575,17 @@ function loop(frame)
     elseif screen == "playing" then
         update_playing(frame)
         draw_playing(frame)
+    elseif screen == "transition" then
+        opening_timer = opening_timer - 1
+        if opening_timer <= 0 then
+            if transition_target == "phase2" then
+                start_phase_two()
+            else
+                screen = "won"
+            end
+        end
+        draw_playing(frame)
+        draw_portal_opening(frame)
     else
         local won = screen == "won"
         if ui.btnp(BTN_X) then reset_run() end
