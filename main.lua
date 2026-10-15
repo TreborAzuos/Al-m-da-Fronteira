@@ -412,11 +412,13 @@ end
 
 local function draw_background()
     ui.camera(0, 0)
-    ui.rectfill(0, 0, 479, 269, palette_hex(0x306230))
-    local scroll = phase == 2 and math.floor(camera_x * 0.35) or 0
-    local first_x = -(scroll % 480)
-    for x = first_x, 480, 480 do
-        ui.spr(Sprites.art.forest_background, x, 0)
+    for world_x = 0, world_width - 1, 400 do
+        local x = world_x - camera_x
+        if x < 480 and x + 400 > 0 then
+            local flip_x = math.floor(world_x / 400) % 2 ~= 0
+            ui.spr(Sprites.art.forest_background, x, 0, flip_x)
+            ui.spr(Sprites.art.forest_background, x, 224, flip_x, true)
+        end
     end
 end
 
