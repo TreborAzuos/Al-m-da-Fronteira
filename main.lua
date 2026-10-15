@@ -67,12 +67,17 @@ local phase_two_platforms = {
     { x = 632, y = 240, w = 160 },
     { x = 832, y = 240, w = 160 },
     { x = 1032, y = 240, w = 168 },
-    { x = 92, y = 202, w = 72 },
-    { x = 274, y = 184, w = 72 },
-    { x = 456, y = 194, w = 80 },
-    { x = 680, y = 184, w = 112 },
-    { x = 874, y = 196, w = 80 },
-    { x = 1000, y = 188, w = 80 }
+    { x = 88, y = 212, w = 72 },
+    { x = 174, y = 188, w = 72 },
+    { x = 266, y = 206, w = 72 },
+    { x = 354, y = 184, w = 80 },
+    { x = 452, y = 204, w = 80 },
+    { x = 550, y = 182, w = 80 },
+    { x = 650, y = 202, w = 80 },
+    { x = 750, y = 180, w = 80 },
+    { x = 850, y = 200, w = 80 },
+    { x = 950, y = 178, w = 80 },
+    { x = 1050, y = 198, w = 80 }
 }
 
 local spawn_x = 12
@@ -179,15 +184,20 @@ local function start_phase_two()
     player = make_player(spawn_x, spawn_y)
     slimes = {
         { x = 328, y = 216, w = 24, h = 24, vx = 1.25, min_x = 296, max_x = 368, active = true },
-        { x = 714, y = 160, w = 24, h = 24, vx = -0.9, min_x = 690, max_x = 756, active = true }
+        { x = 772, y = 156, w = 24, h = 24, vx = -0.9, min_x = 756, max_x = 808, active = true }
     }
     coins = {
-        { x = 142, y = 174, taken = false },
-        { x = 314, y = 150, taken = false },
-        { x = 486, y = 158, taken = false },
-        { x = 716, y = 144, taken = false },
-        { x = 900, y = 154, taken = false },
-        { x = 1040, y = 130, taken = false }
+        { x = 118, y = 184, taken = false },
+        { x = 202, y = 160, taken = false },
+        { x = 294, y = 178, taken = false },
+        { x = 382, y = 156, taken = false },
+        { x = 480, y = 176, taken = false },
+        { x = 578, y = 154, taken = false },
+        { x = 678, y = 174, taken = false },
+        { x = 778, y = 152, taken = false },
+        { x = 878, y = 172, taken = false },
+        { x = 978, y = 150, taken = false },
+        { x = 1078, y = 170, taken = false }
     }
     fruit = { x = 0, y = 0, available = false }
     has_fruit = false
@@ -361,7 +371,7 @@ local function update_playing(frame)
         notice_timer = 90
     end
 
-    if ui.btnp(BTN_G) then
+    if ui.btnp(BTN_X) then
         if overlaps(bounds, { x = portal_x - 1, y = portal_y - 18, w = 34, h = 50 }) then
             if has_fruit then
                 begin_transition(phase == 1 and "phase2" or "won")
@@ -400,38 +410,13 @@ local function update_playing(frame)
     end
 end
 
-local stars = {
-    { x = 28, y = 32 }, { x = 88, y = 59 }, { x = 148, y = 27 },
-    { x = 203, y = 48 }, { x = 274, y = 35 }, { x = 327, y = 61 },
-    { x = 389, y = 30 }, { x = 451, y = 54 }
-}
-
-local function draw_forest_layer(sprite, start_x, y, spacing, parallax, phase_offset)
-    local scroll = math.floor(camera_x * parallax)
-    local first = math.floor((scroll - start_x) / spacing)
-    local last = math.floor((scroll + 480 - start_x) / spacing)
-    for index = first, last do
-        local x = start_x + index * spacing - scroll
-        ui.spr(sprite, x, y + ((index + phase_offset) % 2) * 5)
+local function draw_background()
+    ui.camera(0, 0)
+    local scroll = phase == 2 and math.floor(camera_x * 0.35) or 0
+    local first_x = -(scroll % 480)
+    for x = first_x, 480, 480 do
+        ui.spr(Sprites.art.forest_background, x, 0)
     end
-end
-
-local function draw_background(frame)
-    ui.rectfill(0, 0, 479, 239, Color.left_sky)
-    ui.rectfill(0, 146, 479, 239, Color.forest_dark)
-
-    for index, star in ipairs(stars) do
-        local color = (frame // (8 + index) + index) % 2 == 0 and Color.white or Color.frontier
-        ui.rectfill(star.x, star.y, star.x + 2, star.y + 2, color)
-    end
-
-    ui.trisfill(0, 194, 100, 112, 198, 194, Color.mountain)
-    ui.trisfill(180, 194, 290, 88, 405, 194, Color.mountain_light)
-    ui.trisfill(330, 194, 415, 112, 480, 194, Color.mountain)
-    draw_forest_layer(Sprites.art.forest_canopy_a, -24, 116, 88, 0.20, 0)
-    draw_forest_layer(Sprites.art.forest_canopy_b, 22, 144, 72, 0.34, 1)
-    draw_forest_layer(Sprites.art.forest_canopy_c, 0, 174, 64, 0.48, 0)
-    ui.line(0, 218, 479, 218, Color.deep)
 end
 
 local function draw_platforms()
@@ -444,17 +429,8 @@ local function draw_platforms()
     end
 end
 
-local function draw_portal(frame)
-    local glow = has_fruit and Color.frontier or Color.forest_light
-    local pulse = frame % 20 < 10 and Color.white or glow
+local function draw_portal()
     ui.spr(Sprites.art.forest_gate, portal_x, portal_y)
-    ui.rect(portal_x + 2, portal_y + 2, portal_x + 29, portal_y + 30, glow)
-    draw_circle_outline(portal_x + 16, portal_y + 17, 10 + (frame % 3), pulse)
-    if not has_fruit then
-        ui.circfill(portal_x + 16, portal_y + 16, 3, Color.yellow)
-    else
-        ui.circfill(portal_x + 16, portal_y + 16, 3, pulse)
-    end
 end
 
 local function draw_hud()
@@ -481,10 +457,10 @@ local function draw_attack(frame)
 end
 
 local function draw_playing(frame)
-    draw_background(frame)
+    draw_background()
     ui.camera(camera_x, 0)
     draw_platforms()
-    draw_portal(frame)
+    draw_portal()
 
     for _, coin in ipairs(coins) do
         if not coin.taken then
@@ -559,29 +535,29 @@ local function draw_portal_opening(frame)
 end
 
 local function draw_title(frame)
-    draw_background(frame)
+    draw_background()
     ui.camera(0, 0)
     draw_platforms()
-    draw_portal(frame)
+    draw_portal()
     ui.rectfill(66, 66, 414, 164, Color.deep)
     ui.rect(66, 66, 414, 164, Color.frontier)
     print_center("ALEM DA FRONTEIRA", 240, 83, Color.white)
     print_center("VENCA OS DESAFIOS", 240, 108, Color.yellow)
     print_center("FRUTAS SAO A CHAVE DA FRONTEIRA", 240, 126, Color.white)
     print_center("MOEDAS VALEM PONTOS", 240, 144, Color.yellow)
-    print_center("A: COMECAR", 240, 181, frame % 50 < 25 and Color.white or Color.frontier)
+    print_center("X: COMECAR", 240, 181, frame % 50 < 25 and Color.white or Color.frontier)
     ui.tile(Sprites.art.player, math.floor(frame / 14) % 4, 102, 205)
     ui.spr(Sprites.art.fruit, 348, 210)
 end
 
 local function draw_ending(frame, won)
-    draw_background(frame)
+    draw_background()
     ui.camera(0, 0)
     draw_platforms()
     if phase == 2 then
         ui.spr(Sprites.art.forest_gate, 420, 205)
     else
-        draw_portal(frame)
+        draw_portal()
     end
     ui.rectfill(88, 84, 392, 174, Color.deep)
     ui.rect(88, 84, 392, 174, won and Color.frontier or Color.red)
@@ -592,7 +568,7 @@ local function draw_ending(frame, won)
         print_center("A FRONTEIRA RESISTIU", 240, 105, Color.white)
         print_center("TENTE DE NOVO", 240, 131, Color.yellow)
     end
-    print_center("A: JOGAR NOVAMENTE", 240, 190, frame % 50 < 25 and Color.white or Color.frontier)
+    print_center("X: JOGAR NOVAMENTE", 240, 190, frame % 50 < 25 and Color.white or Color.frontier)
 end
 
 function loop(frame)
@@ -605,7 +581,7 @@ function loop(frame)
     ui.cls(Color.left_sky)
 
     if screen == "title" then
-        if ui.btnp(BTN_G) then reset_run() end
+        if ui.btnp(BTN_X) then reset_run() end
         draw_title(frame)
     elseif screen == "playing" then
         update_playing(frame)
@@ -623,7 +599,7 @@ function loop(frame)
         draw_portal_opening(frame)
     else
         local won = screen == "won"
-        if ui.btnp(BTN_G) then reset_run() end
+        if ui.btnp(BTN_X) then reset_run() end
         draw_ending(frame, won)
     end
 end

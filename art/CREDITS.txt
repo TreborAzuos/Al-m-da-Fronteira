@@ -14,8 +14,8 @@ Fonte PixelOperator8: Jayvee Enaguas / HarvettFox96, incluída no pacote Brackey
 Licença do pacote: Creative Commons Zero (CC0).
 https://creativecommons.org/publicdomain/zero/1.0/
 
-Vegetação e passagem de água recortadas do Tiny Wonder Forest Asset Pack,
-de Butter Milk, fornecido em Assets/Tiny Wonder Forest 1.0. Os recortes foram
-adaptados para o jogo. O autor permite uso comercial e não comercial e edição;
-os sprites não podem ser revendidos isoladamente.
+Porta recortada de items&objects/furniture.png, do Tiny Wonder Forest Asset Pack,
+de Butter Milk, fornecido em Assets/Tiny Wonder Forest 1.0. O fundo usa
+Assets/forest_background.png. O autor do pacote permite uso comercial e não
+comercial e edição; os sprites do pacote não podem ser revendidos isoladamente.
 https://butterymilk.itch.io/tiny-wonder-forest

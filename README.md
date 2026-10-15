@@ -14,4 +14,4 @@ Vença os desafios e atravesse as fronteiras. Ataque os slimes com X para fazê-
 
 ## Arte
 
-Os sprites do knight, slime, fruta, moedas e espada e a fonte PixelOperator8 vêm do Brackeys Platformer Assets (CC0). A vegetação e a passagem de água vêm do Tiny Wonder Forest Asset Pack, de Butter Milk. Recortes preparados para o jogo ficam em `art/`. Fontes e créditos completos estão em `art/CREDITS.txt`.
+Os sprites do knight, slime, fruta, moedas e espada e a fonte PixelOperator8 vêm do Brackeys Platformer Assets (CC0). A porta vem do atlas de móveis do Tiny Wonder Forest Asset Pack, de Butter Milk. O fundo usa `Assets/forest_background.png`. Os recortes preparados para o jogo ficam em `art/`. Fontes e créditos completos estão em `art/CREDITS.txt`.
