@@ -522,7 +522,7 @@ local function draw_playing(frame)
         if phase == 1 then
             print_center("VENCA OS DESAFIOS", 240, 78, Color.white)
             print_center("ATRAVESSE AS FRONTEIRAS", 240, 98, Color.yellow)
-            print_center("FRUTAS SÃO A CHAVE DA FRONTEIRA", 240, 118, Color.white)
+            print_center("FRUTAS SAO A CHAVE DA FRONTEIRA", 240, 118, Color.white)
             print_center("MOEDAS VALEM PONTOS", 240, 138, Color.yellow)
         else
             print_center("FASE 2: FLORESTA DISTANTE", 240, 78, Color.white)
