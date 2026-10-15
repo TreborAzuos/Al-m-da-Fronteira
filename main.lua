@@ -514,7 +514,7 @@ local function draw_playing(frame)
     ui.camera(0, 0)
     draw_hud()
     ui.rectfill(111, 32, 369, 47, Color.deep)
-    print_pixel("DPAD MOVER  B PULAR  X ATAQUE", 126, 36, Color.white)
+    print_pixel("DPAD MOVER - B PULAR - A ATAQUE", 126, 36, Color.white)
     if intro_timer > 0 then
         ui.rectfill(48, 68, 432, 160, Color.deep)
         ui.rect(48, 68, 432, 160, Color.frontier)
