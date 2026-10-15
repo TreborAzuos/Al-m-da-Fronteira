@@ -87,7 +87,7 @@ local slime_hitbox = { x = 5, y = 12, w = 15, h = 12 }
 local player = {}
 local slimes = {}
 local coins = {}
-local fruit = {}
+local fruits = {}
 local platforms = phase_one_platforms
 local phase = 1
 local world_width = 480
@@ -96,7 +96,8 @@ local portal_x = 438
 local portal_y = 208
 local lives = 3
 local score = 0
-local has_fruit = false
+local fruit_count = 0
+local required_fruits = 1
 local intro_timer = 0
 local screen = "title"
 local notice = ""
@@ -162,10 +163,11 @@ local function reset_run()
         { x = 216, y = 126, taken = false },
         { x = 374, y = 174, taken = false }
     }
-    fruit = { x = 0, y = 0, available = false }
+    fruits = {}
     lives = 3
     score = 0
-    has_fruit = false
+    fruit_count = 0
+    required_fruits = 1
     notice = ""
     notice_timer = 0
     intro_timer = 180
@@ -199,8 +201,9 @@ local function start_phase_two()
         { x = 978, y = 150, taken = false },
         { x = 1078, y = 170, taken = false }
     }
-    fruit = { x = 0, y = 0, available = false }
-    has_fruit = false
+    fruits = {}
+    fruit_count = 0
+    required_fruits = 2
     camera_x = 0
     intro_timer = 150
     notice = ""
@@ -283,26 +286,14 @@ local function attack_slimes(bounds)
         w = 26,
         h = 22
     }
-    local hit_any = false
-
     for _, slime in ipairs(slimes) do
         if slime.active and overlaps(attack, slime_bounds(slime)) then
             slime.active = false
             score = score + 50
-            hit_any = true
-            if not has_fruit and not fruit.available then
-                fruit.x = slime.x + 4
-                fruit.y = slime.y + 4
-                fruit.available = true
-                notice = "SLIME SOLTOU FRUTA"
-                notice_timer = 75
-            end
+            table.insert(fruits, { x = slime.x + 4, y = slime.y + 4, available = true })
+            notice = "SLIME SOLTOU FRUTA"
+            notice_timer = 75
         end
-    end
-
-    if hit_any and not fruit.available and not has_fruit then
-        notice = "SLIME AFASTADO"
-        notice_timer = 60
     end
 end
 
@@ -359,24 +350,26 @@ local function update_playing(frame)
         end
     end
 
-    if fruit.available and overlaps(bounds, {
-        x = fruit.x + 2,
-        y = fruit.y + 2,
-        w = 12,
-        h = 12
-    }) then
-        fruit.available = false
-        has_fruit = true
-        notice = "FRUTA CHAVE OBTIDA"
-        notice_timer = 90
+    for _, fruit in ipairs(fruits) do
+        if fruit.available and overlaps(bounds, {
+            x = fruit.x + 2,
+            y = fruit.y + 2,
+            w = 12,
+            h = 12
+        }) then
+            fruit.available = false
+            fruit_count = fruit_count + 1
+            notice = "FRUTAS: " .. fruit_count .. "/" .. required_fruits
+            notice_timer = 90
+        end
     end
 
     if ui.btnp(BTN_G) then
         if overlaps(bounds, { x = portal_x - 1, y = portal_y - 18, w = 34, h = 50 }) then
-            if has_fruit then
+            if fruit_count >= required_fruits then
                 begin_transition(phase == 1 and "phase2" or "phase3")
             elseif notice_timer <= 0 then
-                notice = "FRUTAS SÃO A CHAVE"
+                notice = "FALTAM " .. (required_fruits - fruit_count) .. " FRUTA(S)"
                 notice_timer = 75
             end
         else
@@ -467,6 +460,10 @@ local function draw_hud()
     ui.spr(Sprites.art.fragment, 92, 10)
     print_pixel(string.format("%03d", score), 111, 14, Color.yellow)
 
+    ui.rectfill(187, 7, 346, 29, Color.deep)
+    ui.spr(Sprites.art.fruit, 194, 10)
+    print_pixel("FRUTAS " .. fruit_count .. "/" .. required_fruits, 217, 14, Color.yellow)
+
     ui.rectfill(355, 7, 472, 29, Color.deep)
     print_pixel("VIDAS", 363, 14, Color.white)
     for index = 1, lives do
@@ -494,8 +491,10 @@ local function draw_playing(frame)
         end
     end
 
-    if fruit.available then
-        world_sprite(Sprites.art.fruit, fruit.x, fruit.y, 16)
+    for _, fruit in ipairs(fruits) do
+        if fruit.available then
+            world_sprite(Sprites.art.fruit, fruit.x, fruit.y, 16)
+        end
     end
 
     for _, slime in ipairs(slimes) do
@@ -528,8 +527,8 @@ local function draw_playing(frame)
         else
             print_center("FASE 2: FLORESTA DISTANTE", 240, 78, Color.white)
             print_center("SIGA PELAS PLATAFORMAS", 240, 98, Color.yellow)
-            print_center("UM SLIME GUARDA O ALTO", 240, 118, Color.white)
-            print_center("ACHE A FRUTA E O PORTAL", 240, 138, Color.yellow)
+            print_center("CADA SLIME SOLTA UMA FRUTA", 240, 118, Color.white)
+            print_center("PEGUE AS 2 PARA ABRIR O PORTAL", 240, 138, Color.yellow)
         end
     end
     if notice_timer > 0 then
