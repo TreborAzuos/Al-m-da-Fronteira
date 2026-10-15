@@ -19,3 +19,6 @@ de Butter Milk, fornecido em Assets/Tiny Wonder Forest 1.0. O fundo usa
 Assets/forest_background.png. O autor do pacote permite uso comercial e não
 comercial e edição; os sprites do pacote não podem ser revendidos isoladamente.
 https://butterymilk.itch.io/tiny-wonder-forest
+
+Casa e arvore da fase 3: recortes de items&objects/summer and spring items.png,
+do mesmo pacote Tiny Wonder Forest, de Butter Milk.

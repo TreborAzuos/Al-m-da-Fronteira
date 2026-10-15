@@ -374,7 +374,7 @@ local function update_playing(frame)
     if ui.btnp(BTN_X) then
         if overlaps(bounds, { x = portal_x - 1, y = portal_y - 18, w = 34, h = 50 }) then
             if has_fruit then
-                begin_transition(phase == 1 and "phase2" or "won")
+                begin_transition(phase == 1 and "phase2" or "phase3")
             elseif notice_timer <= 0 then
                 notice = "FRUTAS SÃO A CHAVE"
                 notice_timer = 75
@@ -425,15 +425,38 @@ end
 local function draw_platforms()
     for _, platform in ipairs(platforms) do
         for x = platform.x, platform.x + platform.w - 16, 16 do
-            ui.spr(Sprites.art.ground, x, platform.y)
+            local sx = math.floor(x - camera_x)
+            if sx > -16 and sx < 480 then
+                ui.spr(Sprites.art.ground, sx, platform.y)
+            end
         end
-        ui.rectfill(platform.x, platform.y + 14, platform.x + platform.w - 1, platform.y + 18, Color.earth)
-        ui.line(platform.x, platform.y + 15, platform.x + platform.w - 1, platform.y + 15, Color.grass_dark)
+        local left = math.max(0, math.floor(platform.x - camera_x))
+        local right = math.min(479, math.floor(platform.x + platform.w - 1 - camera_x))
+        if left <= right then
+            ui.rectfill(left, platform.y + 14, right, platform.y + 18, Color.earth)
+            ui.line(left, platform.y + 15, right, platform.y + 15, Color.grass_dark)
+        end
+    end
+end
+
+-- Submit only visible screen coordinates: distant world positions can wrap
+-- in console drawing commands before the viewport clip is applied.
+local function world_sprite(sprite, x, y, width, flip)
+    local sx = math.floor(x - camera_x)
+    if sx + width > 0 and sx < 480 then
+        ui.spr(sprite, sx, math.floor(y), flip)
+    end
+end
+
+local function world_tile(sprite, tile, x, y, width)
+    local sx = math.floor(x - camera_x)
+    if sx + width > 0 and sx < 480 then
+        ui.tile(sprite, tile, sx, math.floor(y))
     end
 end
 
 local function draw_portal()
-    ui.spr(Sprites.art.forest_gate, portal_x, portal_y)
+    world_sprite(Sprites.art.forest_gate, portal_x, portal_y, 32)
 end
 
 local function draw_hud()
@@ -456,35 +479,35 @@ local function draw_attack(frame)
     local sprite = Sprites.art["sword_" .. tostring(attack_frame)]
     local bounds = player_bounds()
     local sx = player.facing > 0 and bounds.x + bounds.w - 4 or bounds.x - 25
-    ui.spr(sprite, sx, bounds.y - 2, player.facing < 0)
+    world_sprite(sprite, sx, bounds.y - 2, 16, player.facing < 0)
 end
 
 local function draw_playing(frame)
     draw_background()
-    ui.camera(camera_x, 0)
+    ui.camera(0, 0)
     draw_platforms()
     draw_portal()
 
     for _, coin in ipairs(coins) do
         if not coin.taken then
-            ui.spr(Sprites.art.fragment, coin.x, coin.y)
+            world_sprite(Sprites.art.fragment, coin.x, coin.y, 16)
         end
     end
 
     if fruit.available then
-        ui.spr(Sprites.art.fruit, math.floor(fruit.x), math.floor(fruit.y))
+        world_sprite(Sprites.art.fruit, fruit.x, fruit.y, 16)
     end
 
     for _, slime in ipairs(slimes) do
         if slime.active then
             local slime_frame = math.floor(frame / 12) % 4
-            ui.tile(Sprites.art.slime, slime_frame + (slime.vx < 0 and 1024 or 0), math.floor(slime.x), slime.y)
+            world_tile(Sprites.art.slime, slime_frame + (slime.vx < 0 and 1024 or 0), slime.x, slime.y, 24)
         end
     end
 
     if player.invulnerable == 0 or frame % 8 < 4 then
         local player_frame = math.floor(frame / 14) % 4
-        ui.tile(Sprites.art.player, player_frame + (player.facing < 0 and 1024 or 0), math.floor(player.x), math.floor(player.y))
+        world_tile(Sprites.art.player, player_frame + (player.facing < 0 and 1024 or 0), player.x, player.y, 32)
     end
     if player.attack_timer > 0 then
         draw_attack(frame)
@@ -553,6 +576,28 @@ local function draw_title(frame)
     ui.spr(Sprites.art.fruit, 348, 210)
 end
 
+local function draw_celebration(frame)
+    draw_background()
+    ui.camera(0, 0)
+    for x = 0, 464, 16 do
+        ui.spr(Sprites.art.ground, x, 218)
+    end
+    ui.rectfill(0, 234, 479, 269, Color.earth)
+    ui.spr(Sprites.art.spring_tree, 116, 170)
+    ui.spr(Sprites.art.spring_tree, 340, 170, true)
+    ui.spr(Sprites.art.cozy_house, 192, 122)
+    ui.tile(Sprites.art.player, math.floor(frame / 14) % 4, 298, 190)
+    ui.rectfill(44, 17, 436, 106, Color.deep)
+    ui.rect(44, 17, 436, 106, Color.frontier)
+    print_center("FASE 3: UM NOVO LAR", 240, 28, Color.frontier)
+    print_center("PARABENS, AVENTUREIRO!", 240, 48, Color.white)
+    print_center("VOCE ATRAVESSOU A FRONTEIRA!", 240, 68, Color.yellow)
+    print_center("AGORA E HORA DE DESCANSAR", 240, 88, Color.white)
+    ui.rectfill(118, 239, 362, 261, Color.deep)
+    print_center("X: JOGAR NOVAMENTE", 240, 246,
+        frame % 50 < 25 and Color.white or Color.frontier)
+end
+
 local function draw_ending(frame, won)
     draw_background()
     ui.camera(0, 0)
@@ -594,12 +639,25 @@ function loop(frame)
         if opening_timer <= 0 then
             if transition_target == "phase2" then
                 start_phase_two()
+                draw_playing(frame)
             else
-                screen = "won"
+                phase = 3
+                world_width = 480
+                camera_x = 0
+                screen = "celebration"
+                draw_celebration(frame)
             end
+        else
+            draw_playing(frame)
+            draw_portal_opening(frame)
         end
-        draw_playing(frame)
-        draw_portal_opening(frame)
+    elseif screen == "celebration" then
+        if ui.btnp(BTN_X) then
+            reset_run()
+            draw_playing(frame)
+        else
+            draw_celebration(frame)
+        end
     else
         local won = screen == "won"
         if ui.btnp(BTN_X) then reset_run() end
