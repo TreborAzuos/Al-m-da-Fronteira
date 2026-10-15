@@ -412,6 +412,7 @@ end
 
 local function draw_background()
     ui.camera(0, 0)
+    ui.rectfill(0, 0, 479, 269, palette_hex(0x306230))
     local scroll = phase == 2 and math.floor(camera_x * 0.35) or 0
     local first_x = -(scroll % 480)
     for x = first_x, 480, 480 do
